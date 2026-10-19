@@ -7,8 +7,6 @@
    ===================================================== */
 const CONFIG = {
   maxNameLength: 20,        // longest name allowed
-  maxDodges: 6,             // how many times NO runs away before it can be clicked
-  dodgeCooldown: 380,       // milliseconds between two escapes
   nextQuestionDelay: 1800,  // milliseconds before the next question appears
   soundOnByDefault: true,   // sound effects start on (she can mute them)
 
@@ -34,26 +32,12 @@ const CONFIG = {
     "You are officially the best, {name}! 🎁✨"
   ],
 
-  // Random messages shown every time NO runs away
+  // Shown whenever someone gets close to or clicks NO
   noMessages: [
-    "Hehe, nice try! 😂",
-    "You can't catch me! 🏃‍♀️💨",
-    "Are you sure, cutie? 🥹",
-    "The NO button is shy today! 🙈",
-    "Oops! Almost caught me! 💗",
-    "The YES button is waiting for you! 👀",
-    "Ooh, so close! 😜",
-    "Catch me if you can, {name}! 🎀"
-  ],
-
-  // Shown when NO finally stops running
-  noGiveUpMessage: "Okay okay, I'll stop running now! You can choose whatever you like, {name} 🥹💗",
-
-  // Shown if she really does press NO after it stops running
-  noAcceptedMessages: [
-    "That's okay, {name}! You're still wonderful 💗",
-    "No worries, cutie! I still adore you 🧸",
-    "Fair enough! You were brave enough to catch me! 🏅"
+    "Hehe, nice try, {name}! 🙈💗",
+    "Oops, you almost caught me! Try again, cutie! 🏃‍♀️💨",
+    "Aww, don't give up! I'm a little too quick! 🎀",
+    "That was close, {name}! Here's a little hug for trying! 🧸💕"
   ],
 
   // Random compliments (final screen)
@@ -107,7 +91,7 @@ const HEART_ICONS = ["💗", "💖", "💕", "🌸", "✨", "🌷", "🎀", "�
    3. APP STATE
    ===================================================== */
 function freshState() {
-  return { name: "", index: 0, attempts: 0, locked: false, lastDodge: 0, meter: 0, giftOpen: false };
+  return { name: "", index: 0, locked: false, meter: 0, giftOpen: false };
 }
 const state = freshState();
 function resetState() { Object.assign(state, freshState()); }
@@ -173,7 +157,6 @@ function playSound(name) {
   if (!soundOn) return;
   const sounds = {
     click: [[660, 0, 0.1]],
-    dodge: [[880, 0, 0.07, "triangle"], [660, 0.07, 0.08, "triangle"]],
     yes:   [[523, 0, 0.15], [659, 0.1, 0.15], [784, 0.2, 0.28]],
     win:   [[523, 0, 0.18], [659, 0.15, 0.18], [784, 0.3, 0.18], [1047, 0.45, 0.4]],
     gift:  [[784, 0, 0.12], [988, 0.1, 0.12], [1175, 0.2, 0.12], [1568, 0.3, 0.35]]
@@ -349,9 +332,7 @@ function startQuiz() {
 
 function renderQuestion() {
   const total = CONFIG.questions.length;
-  state.attempts = 0;
   state.locked = false;
-  state.lastDodge = 0;
 
   $("questionText").textContent = fill(CONFIG.questions[state.index]);
   $("questionCounter").textContent = "Question " + (state.index + 1) + " of " + total;
@@ -363,7 +344,7 @@ function renderQuestion() {
   replayAnimation($("questionCard"), "swap");
 
   placeNoAtSlot();
-  requestAnimationFrame(() => { if (state.attempts === 0) placeNoAtSlot(); });
+  requestAnimationFrame(placeNoAtSlot);
   $("questionText").focus({ preventScroll: true });
 }
 
@@ -395,136 +376,73 @@ yesBtn.addEventListener("click", () => {
   setTimeout(nextQuestion, CONFIG.nextQuestionDelay);
 });
 
-/* ---------- Runaway NO button ---------- */
+/* ---------- NO button ---------- */
 
-// Put NO in its starting spot (next to YES), without animation
 function placeNoAtSlot() {
-  noBtn.style.transition = "none";
-  noBtn.style.left = noSlot.offsetLeft + "px";
-  noBtn.style.top = noSlot.offsetTop + "px";
-  void noBtn.offsetWidth;
-  noBtn.style.transition = "";
-}
-
-// Smoothly return NO to its starting spot
-function moveNoToSlot() {
   noBtn.style.left = noSlot.offsetLeft + "px";
   noBtn.style.top = noSlot.offsetTop + "px";
 }
 
-// Do two rectangles overlap (with a safety margin)?
-function overlaps(x, y, w, h, box, margin) {
-  return x < box.right + margin && x + w > box.left - margin &&
-         y < box.bottom + margin && y + h > box.top - margin;
-}
-
-// Jump to a random spot inside the arena that never covers YES
-function moveNoRandomly() {
-  const arenaW = arena.clientWidth;
-  const arenaH = arena.clientHeight;
-  const w = noBtn.offsetWidth;
-  const h = noBtn.offsetHeight;
-  const maxX = Math.max(0, arenaW - w);
-  const maxY = Math.max(0, arenaH - h);
-
-  const yesBox = {
-    left: yesBtn.offsetLeft,
-    top: yesBtn.offsetTop,
-    right: yesBtn.offsetLeft + yesBtn.offsetWidth,
-    bottom: yesBtn.offsetTop + yesBtn.offsetHeight
+function moveNoAwayFrom(clientX, clientY) {
+  const bounds = arena.getBoundingClientRect();
+  const width = noBtn.offsetWidth;
+  const height = noBtn.offsetHeight;
+  const maxX = Math.max(0, arena.clientWidth - width);
+  const maxY = Math.max(0, arena.clientHeight - height);
+  const yesBounds = {
+    left: yesBtn.offsetLeft - 12,
+    right: yesBtn.offsetLeft + yesBtn.offsetWidth + 12,
+    top: yesBtn.offsetTop - 12,
+    bottom: yesBtn.offsetTop + yesBtn.offsetHeight + 12
   };
-  const currentX = noBtn.offsetLeft;
-  const currentY = noBtn.offsetTop;
+  let bestSpot = null;
+  let bestDistance = -1;
 
-  let chosen = null;
-  let farthest = null;
-  let farthestDistance = -1;
-
-  for (let i = 0; i < 80; i++) {
+  for (let attempt = 0; attempt < 80; attempt++) {
     const x = Math.random() * maxX;
     const y = Math.random() * maxY;
-    if (overlaps(x, y, w, h, yesBox, 14)) continue;
-    const distance = Math.hypot(x - currentX, y - currentY);
-    if (distance > farthestDistance) { farthest = { x, y }; farthestDistance = distance; }
-    if (distance >= 90) { chosen = { x, y }; break; }
-  }
+    const overlapsYes = x < yesBounds.right && x + width > yesBounds.left &&
+      y < yesBounds.bottom && y + height > yesBounds.top;
+    if (overlapsYes) continue;
 
-  // Backup plan: try the four corners
-  if (!chosen && !farthest) {
-    const corners = [[0, 0], [maxX, 0], [0, maxY], [maxX, maxY]];
-    for (const [x, y] of corners) {
-      if (!overlaps(x, y, w, h, yesBox, 10)) { farthest = { x, y }; break; }
+    const centerX = bounds.left + x + width / 2;
+    const centerY = bounds.top + y + height / 2;
+    const distance = Math.hypot(clientX - centerX, clientY - centerY);
+    if (distance > bestDistance) {
+      bestSpot = { x, y };
+      bestDistance = distance;
     }
   }
 
-  const spot = chosen || farthest || { x: 0, y: 0 };
-  noBtn.style.left = spot.x + "px";
-  noBtn.style.top = spot.y + "px";
+  if (!bestSpot) return;
+  noBtn.style.left = bestSpot.x + "px";
+  noBtn.style.top = bestSpot.y + "px";
 }
 
-function dodge() {
-  if (state.locked || state.attempts >= CONFIG.maxDodges) return;
-  const now = Date.now();
-  if (now - state.lastDodge < CONFIG.dodgeCooldown) return;
-  state.lastDodge = now;
-  state.attempts++;
-
-  if (state.attempts >= CONFIG.maxDodges) {
-    // Enough fun: NO goes back next to YES and can now be clicked normally
-    moveNoToSlot();
-    noBtn.classList.add("calm");
-    setMessage(CONFIG.noGiveUpMessage);
-  } else {
-    moveNoRandomly();
-    setMessage(pick(CONFIG.noMessages));
-  }
-  playSound("dodge");
+function dodgeNo(clientX, clientY) {
+  if (state.locked) return;
+  setMessage(pick(CONFIG.noMessages));
+  moveNoAwayFrom(clientX, clientY);
 }
 
-// Desktop: run away when the mouse gets close
 arena.addEventListener("pointermove", (event) => {
-  if (event.pointerType !== "mouse") return;
-  if (state.locked || state.attempts >= CONFIG.maxDodges) return;
-  const rect = noBtn.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-  const closeEnough = Math.max(rect.width / 2 + 30, 80);
-  if (Math.hypot(event.clientX - centerX, event.clientY - centerY) < closeEnough) dodge();
+  if (event.pointerType !== "mouse" || state.locked) return;
+  const bounds = noBtn.getBoundingClientRect();
+  const centerX = bounds.left + bounds.width / 2;
+  const centerY = bounds.top + bounds.height / 2;
+  if (Math.hypot(event.clientX - centerX, event.clientY - centerY) < 90) {
+    dodgeNo(event.clientX, event.clientY);
+  }
 });
 
-// Mobile (tap) and keyboard: run away on click until she has tried enough times
 noBtn.addEventListener("click", () => {
   if (state.locked) return;
-  if (state.attempts < CONFIG.maxDodges) {
-    dodge();
-    return;
-  }
-  acceptNo();
+  const bounds = noBtn.getBoundingClientRect();
+  dodgeNo(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
 });
 
-// She really wants to press NO, which is fine too
-function acceptNo() {
-  state.locked = true;
-  yesBtn.disabled = true;
-  noBtn.disabled = true;
-
-  state.meter += 100 / CONFIG.questions.length / 2;
-  updateMeters();
-  setProgress(state.index + 1);
-
-  setMessage(pick(CONFIG.noAcceptedMessages));
-  playSound("click");
-  setTimeout(nextQuestion, CONFIG.nextQuestionDelay);
-}
-
-// Keep NO inside the arena if the window size changes
 window.addEventListener("resize", () => {
-  if ($("quizScreen").hidden) return;
-  if (state.attempts === 0 || state.attempts >= CONFIG.maxDodges) {
-    placeNoAtSlot();
-  } else {
-    moveNoRandomly();
-  }
+  if (!$("quizScreen").hidden) placeNoAtSlot();
 });
 
 /* =====================================================
@@ -631,3 +549,58 @@ loadTheme();
 updateSoundButton();
 createBackgroundHearts();
 updateMeters();
+
+const backgroundMusic = document.getElementById("backgroundMusic");
+const musicToggle = document.getElementById("musicToggle");
+const musicStatus = $("musicStatus");
+
+function updateMusicButton() {
+  const isPlaying = !backgroundMusic.paused;
+  musicToggle.textContent = isPlaying ? "⏸️" : "🎵";
+  musicToggle.setAttribute("aria-label", isPlaying ? "Pause background music" : "Play background music");
+  musicToggle.setAttribute("aria-pressed", String(isPlaying));
+}
+
+function showMusicStatus(message) {
+  musicStatus.textContent = message;
+  musicStatus.hidden = !message;
+}
+
+async function startBackgroundMusic() {
+  try {
+    await backgroundMusic.play();
+    showMusicStatus("");
+    updateMusicButton();
+  } catch (error) {
+    updateMusicButton();
+    if (error.name === "NotAllowedError") {
+      showMusicStatus("Tap or press any key to start the music 🎵");
+    } else {
+      console.error("Could not play background music:", error);
+      showMusicStatus("Music couldn't load. Check that music.mp3 is next to index.html.");
+    }
+  }
+}
+
+backgroundMusic.addEventListener("play", updateMusicButton);
+backgroundMusic.addEventListener("pause", updateMusicButton);
+musicToggle.addEventListener("click", () => {
+  if (backgroundMusic.paused) {
+    startBackgroundMusic();
+  } else {
+    backgroundMusic.pause();
+    updateMusicButton();
+  }
+});
+
+function startMusicOnFirstGesture(event) {
+  if (event.target instanceof Element && event.target.closest("#musicToggle")) return;
+  document.removeEventListener("pointerdown", startMusicOnFirstGesture);
+  document.removeEventListener("keydown", startMusicOnFirstGesture);
+  if (backgroundMusic.paused) startBackgroundMusic();
+}
+
+document.addEventListener("pointerdown", startMusicOnFirstGesture);
+document.addEventListener("keydown", startMusicOnFirstGesture);
+updateMusicButton();
+startBackgroundMusic();

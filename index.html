@@ -52,6 +52,8 @@
             aria-label="Switch between light and dark theme" aria-pressed="false">🌙</button>
     <button id="soundToggle" class="icon-btn" type="button"
             aria-label="Mute or unmute sound effects" aria-pressed="false">🔊</button>
+    <button id="musicToggle" class="icon-btn" type="button"
+            aria-label="Play background music" aria-pressed="false">🎵</button>
   </div>
 
   <main class="app">
@@ -60,14 +62,16 @@
     <section id="welcomeScreen" class="screen card" aria-labelledby="welcomeTitle">
       <div class="teddy-wrap">
         <svg class="teddy" viewBox="0 0 200 200" role="img" aria-label="A cute teddy bear with a pink bow">
-          <use href="#teddySymbol"></use>
+          <img src="image.png" alt="A cute teddy bear with a pink bow" width="200" height="200">
         </svg>
         <span class="sparkle s1" aria-hidden="true">✨</span>
         <span class="sparkle s2" aria-hidden="true">🌸</span>
         <span class="sparkle s3" aria-hidden="true">💗</span>
       </div>
 
+      <p class="welcome-kicker">A little moment, made just for you</p>
       <h1 id="welcomeTitle" tabindex="-1" data-focus>Hey You! I Have a Little Surprise for You 💗</h1>
+      <p class="welcome-copy">A few sweet questions and a little surprise are waiting. Ready? ✨</p>
 
       <form id="nameForm" novalidate>
         <label for="nameInput" class="lead">First, tell me your name, cutie! 🎀</label>
@@ -81,7 +85,7 @@
     <!-- ========== SCREEN 2: GREETING ========== -->
     <section id="greetingScreen" class="screen card" hidden aria-labelledby="greetingTitle">
       <svg class="teddy" viewBox="0 0 200 200" role="img" aria-label="A cute teddy bear waving hello">
-        <use href="#teddySymbol"></use>
+        <img src="image.png" alt="A cute teddy bear waving hello" width="200" height="200">
       </svg>
       <h2 id="greetingTitle" tabindex="-1" data-focus></h2>
       <p class="lead">I made a little something just for you. You have been selected for a very important mission: answering some super cute questions! Are you ready? 🧸</p>
@@ -110,11 +114,11 @@
 
       <div class="card question-card" id="questionCard">
         <svg class="teddy teddy-small" id="quizTeddy" viewBox="0 0 200 200" aria-hidden="true">
-          <use href="#teddySymbol"></use>
+          <img src="image.png" alt="A cute teddy bear with a pink bow" width="200" height="200">
         </svg>
         <h2 id="questionText" class="question" tabindex="-1"></h2>
 
-        <!-- The NO button runs around inside this area -->
+        <!-- NO playfully dodges, but always responds with a message when clicked -->
         <div class="arena" id="arena">
           <button id="yesBtn" type="button" class="btn btn-yes">YES 💗</button>
           <span class="no-slot" id="noSlot" aria-hidden="true"></span>
@@ -128,7 +132,7 @@
     <!-- ========== SCREEN 4: FINAL SURPRISE ========== -->
     <section id="finalScreen" class="screen card" hidden aria-labelledby="finalTitle">
       <svg class="teddy" viewBox="0 0 200 200" role="img" aria-label="A happy teddy bear sending a hug">
-        <use href="#teddySymbol"></use>
+        <img src="image.png" alt="A happy teddy bear sending a hug" width="200" height="200">                   
       </svg>
       <h2 id="finalTitle" tabindex="-1" data-focus></h2>
 
@@ -167,6 +171,10 @@
     </noscript>
   </main>
 
+  <p id="musicStatus" class="music-status" role="status" aria-live="polite" hidden></p>
+  <audio id="backgroundMusic" loop preload="auto">
+    <source src="music.mp3" type="audio/mpeg">
+  </audio>
   <script src="script.js"></script>
 </body>
 </html>
