@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A Little Surprise For You 💗</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Reusable teddy bear drawing (defined once, used on several screens) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="teddySymbol" viewBox="0 0 200 200">
+      <!-- body -->
+      <ellipse cx="100" cy="195" rx="50" ry="32" fill="#dba87a"/>
+      <ellipse cx="100" cy="190" rx="30" ry="22" fill="#f8e1c4"/>
+      <!-- ears -->
+      <circle cx="52" cy="48" r="24" fill="#d9a073"/>
+      <circle cx="52" cy="48" r="13" fill="#f7c9d6"/>
+      <circle cx="148" cy="48" r="24" fill="#d9a073"/>
+      <circle cx="148" cy="48" r="13" fill="#f7c9d6"/>
+      <!-- head -->
+      <circle cx="100" cy="105" r="62" fill="#e3b083"/>
+      <!-- muzzle -->
+      <ellipse cx="100" cy="124" rx="28" ry="21" fill="#f8e1c4"/>
+      <!-- eyes -->
+      <circle cx="76" cy="92" r="7" fill="#4a2f3f"/>
+      <circle cx="124" cy="92" r="7" fill="#4a2f3f"/>
+      <circle cx="78" cy="89" r="2.4" fill="#ffffff"/>
+      <circle cx="126" cy="89" r="2.4" fill="#ffffff"/>
+      <!-- nose and smile -->
+      <ellipse cx="100" cy="114" rx="9" ry="6" fill="#4a2f3f"/>
+      <path d="M100 120 V126 M100 126 Q92 134 85 128 M100 126 Q108 134 115 128"
+            stroke="#4a2f3f" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <!-- blush -->
+      <circle cx="60" cy="116" r="9" fill="#ff9dbf" opacity="0.65"/>
+      <circle cx="140" cy="116" r="9" fill="#ff9dbf" opacity="0.65"/>
+      <!-- bow -->
+      <path d="M100 170 L72 154 L72 186 Z" fill="#ff7fb0"/>
+      <path d="M100 170 L128 154 L128 186 Z" fill="#ff7fb0"/>
+      <circle cx="100" cy="170" r="7" fill="#ff5c99"/>
+    </symbol>
+  </svg>
+
+  <!-- Decorative layers -->
+  <div class="bg-hearts" id="bgHearts" aria-hidden="true"></div>
+  <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
+
+  <!-- Theme and sound buttons -->
+  <div class="top-bar">
+    <button id="themeToggle" class="icon-btn" type="button"
+            aria-label="Switch between light and dark theme" aria-pressed="false">🌙</button>
+    <button id="soundToggle" class="icon-btn" type="button"
+            aria-label="Mute or unmute sound effects" aria-pressed="false">🔊</button>
+  </div>
+
+  <main class="app">
+
+    <!-- ========== SCREEN 1: WELCOME ========== -->
+    <section id="welcomeScreen" class="screen card" aria-labelledby="welcomeTitle">
+      <div class="teddy-wrap">
+        <svg class="teddy" viewBox="0 0 200 200" role="img" aria-label="A cute teddy bear with a pink bow">
+          <use href="#teddySymbol"></use>
+        </svg>
+        <span class="sparkle s1" aria-hidden="true">✨</span>
+        <span class="sparkle s2" aria-hidden="true">🌸</span>
+        <span class="sparkle s3" aria-hidden="true">💗</span>
+      </div>
+
+      <h1 id="welcomeTitle" tabindex="-1" data-focus>Hey You! I Have a Little Surprise for You 💗</h1>
+
+      <form id="nameForm" novalidate>
+        <label for="nameInput" class="lead">First, tell me your name, cutie! 🎀</label>
+        <input id="nameInput" class="name-input" type="text" maxlength="20"
+               autocomplete="off" placeholder="Type your name here..." required>
+        <p id="nameError" class="error" role="alert"></p>
+        <button type="submit" class="btn btn-primary">Let's Start 💕</button>
+      </form>
+    </section>
+
+    <!-- ========== SCREEN 2: GREETING ========== -->
+    <section id="greetingScreen" class="screen card" hidden aria-labelledby="greetingTitle">
+      <svg class="teddy" viewBox="0 0 200 200" role="img" aria-label="A cute teddy bear waving hello">
+        <use href="#teddySymbol"></use>
+      </svg>
+      <h2 id="greetingTitle" tabindex="-1" data-focus></h2>
+      <p class="lead">I made a little something just for you. You have been selected for a very important mission: answering some super cute questions! Are you ready? 🧸</p>
+      <button id="readyBtn" type="button" class="btn btn-primary">I'm Ready! ✨</button>
+    </section>
+
+    <!-- ========== SCREEN 3: QUESTIONS ========== -->
+    <section id="quizScreen" class="screen" hidden aria-label="Cute questions">
+      <div class="quiz-head">
+        <p class="counter" id="questionCounter"></p>
+        <div class="progress" id="progressBar" role="progressbar" aria-label="Question progress"
+             aria-valuemin="0" aria-valuemax="7" aria-valuenow="0">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="meter-row">
+          <span>💞 Friendship meter</span>
+          <span class="meter-percent">0%</span>
+        </div>
+        <div class="meter-track" role="progressbar" aria-label="Friendship meter"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="meter-fill"></div>
+        </div>
+        <p class="meter-label"></p>
+      </div>
+
+      <div class="card question-card" id="questionCard">
+        <svg class="teddy teddy-small" id="quizTeddy" viewBox="0 0 200 200" aria-hidden="true">
+          <use href="#teddySymbol"></use>
+        </svg>
+        <h2 id="questionText" class="question" tabindex="-1"></h2>
+
+        <!-- The NO button runs around inside this area -->
+        <div class="arena" id="arena">
+          <button id="yesBtn" type="button" class="btn btn-yes">YES 💗</button>
+          <span class="no-slot" id="noSlot" aria-hidden="true"></span>
+          <button id="noBtn" type="button" class="btn btn-no">NO 🙈</button>
+        </div>
+
+        <p id="message" class="message" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 4: FINAL SURPRISE ========== -->
+    <section id="finalScreen" class="screen card" hidden aria-labelledby="finalTitle">
+      <svg class="teddy" viewBox="0 0 200 200" role="img" aria-label="A happy teddy bear sending a hug">
+        <use href="#teddySymbol"></use>
+      </svg>
+      <h2 id="finalTitle" tabindex="-1" data-focus></h2>
+
+      <div id="finalMessage" class="final-message"></div>
+
+      <div class="meter-block">
+        <div class="meter-row">
+          <span>💞 Friendship meter</span>
+          <span class="meter-percent">0%</span>
+        </div>
+        <div class="meter-track" role="progressbar" aria-label="Final friendship meter"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="meter-fill"></div>
+        </div>
+        <p class="meter-label"></p>
+      </div>
+
+      <!-- Clickable gift box -->
+      <button id="giftBox" type="button" class="gift" aria-label="Open your gift box" aria-expanded="false">
+        <span class="gift-lid"></span>
+        <span class="gift-body"></span>
+      </button>
+      <div id="giftMessage" class="gift-message" hidden role="status" aria-live="polite"></div>
+
+      <p id="complimentBox" class="compliment" hidden role="status" aria-live="polite"></p>
+
+      <div class="btn-row">
+        <button id="openGiftBtn" type="button" class="btn btn-primary">Open Your Gift 🎁</button>
+        <button id="complimentBtn" type="button" class="btn btn-secondary">Compliment Me 💌</button>
+        <button id="playAgainBtn" type="button" class="btn btn-secondary">Play Again 🔄</button>
+      </div>
+    </section>
+
+    <noscript>
+      <p class="card">Please turn on JavaScript to see your surprise 💗</p>
+    </noscript>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
